@@ -9,6 +9,7 @@ using Gringotts.Common;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Gringotts.BankCustomer.Service.Controllers
 {
@@ -19,11 +20,13 @@ namespace Gringotts.BankCustomer.Service.Controllers
     {
         private readonly IRepository<Customer> customersRepository;
         private readonly IPublishEndpoint publishEndpoint;
+        private readonly ILogger<CustomersController> logger;
 
-        public CustomersController(IRepository<Customer> customersRepository, IPublishEndpoint publishEndpoint)
+        public CustomersController(IRepository<Customer> customersRepository, IPublishEndpoint publishEndpoint, ILogger<CustomersController> logger)
         {
             this.customersRepository = customersRepository;
             this.publishEndpoint = publishEndpoint;
+            this.logger = logger;
         }
 
         [HttpGet]

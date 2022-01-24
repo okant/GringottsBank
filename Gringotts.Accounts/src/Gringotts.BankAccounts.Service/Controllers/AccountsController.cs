@@ -7,6 +7,7 @@ using Gringotts.BankAccounts.Service.Entities;
 using Gringotts.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Gringotts.BankAccounts.Service.Controllers
 {
@@ -17,11 +18,13 @@ namespace Gringotts.BankAccounts.Service.Controllers
     {
         private readonly IRepository<Account> accountsRepository;
         private readonly IRepository<Customer> customersRepository;
+        private readonly ILogger<AccountsController> logger;
 
-        public AccountsController(IRepository<Account> accountsRepository, IRepository<Customer> customersRepository)
+        public AccountsController(IRepository<Account> accountsRepository, IRepository<Customer> customersRepository, ILogger<AccountsController> logger)
         {
             this.accountsRepository = accountsRepository;
             this.customersRepository = customersRepository;
+            this.logger = logger;
         }
 
         // [HttpGet]
@@ -96,11 +99,12 @@ namespace Gringotts.BankAccounts.Service.Controllers
         }
 
 
-        [HttpPut]
-        public async Task<ActionResult> Add(Guid accountId, Guid customerId, decimal quantity)
+        [HttpPost]
+        [Route("addmoney")]
+        public async Task<ActionResult> AddAsync(TransactionItem transactionItem)
         {
             var accountItem = await accountsRepository.GetAsync(
-                account => account.CustomerId == customerId && account.Id == accountId);
+                account => account.CustomerId == transactionItem.CustomerId && account.Id == transactionItem.AccountId);
 
             if (accountItem == null)
             {
@@ -108,7 +112,7 @@ namespace Gringotts.BankAccounts.Service.Controllers
             }
             else
             {
-                accountItem.AccountBalance += quantity;
+                accountItem.AccountBalance += transactionItem.Quantity;
 
                 await accountsRepository.UpdateAsync(accountItem);
             }
@@ -116,11 +120,12 @@ namespace Gringotts.BankAccounts.Service.Controllers
             return Ok();
         }
 
-        [HttpPut]
-        public async Task<ActionResult> Withdraw(Guid accountId, Guid customerId, decimal quantity)
+        [HttpPost]
+        [Route("withdrawmoney")]
+        public async Task<ActionResult> WithdrawAsync(TransactionItem transactionItem)
         {
             var accountItem = await accountsRepository.GetAsync(
-                account => account.CustomerId == customerId && account.Id == accountId);
+                account => account.CustomerId == transactionItem.CustomerId && account.Id == transactionItem.AccountId);
 
             if (accountItem == null)
             {
@@ -128,13 +133,13 @@ namespace Gringotts.BankAccounts.Service.Controllers
             }
             else
             {
-                if (accountItem.AccountBalance - quantity < 0)
+                if (accountItem.AccountBalance - transactionItem.Quantity < 0)
                 {
                     return BadRequest("No sufficient balance in your account");
                     //throw new InvalidOperationException("No sufficient balance in your account");                    
                 }
                 else
-                    accountItem.AccountBalance -= quantity;
+                    accountItem.AccountBalance -= transactionItem.Quantity;
 
                 await accountsRepository.UpdateAsync(accountItem);
             }
